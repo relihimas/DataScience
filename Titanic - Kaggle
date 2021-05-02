@@ -1,0 +1,65 @@
+#Quantas pessoas irão sobreviver ao Titanic?
+#importando os dados de treino
+import pandas as pd
+import numpy as np
+bordotrain = pd.read_csv('train.csv')
+
+#transformando a coluna PassengerID em index
+bordotrain = bordotrain.set_index(['PassengerId'])
+
+#deletando as colunas que não queremos
+del bordotrain['Name']
+del bordotrain['Ticket']
+del bordotrain['Cabin']
+del bordotrain['Embarked']
+
+#transformando sexo em dado numérico
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+lblencod = LabelEncoder()
+bordotrain.iloc[:, 2:3] = lblencod.fit_transform(bordotrain.iloc[:, 2:3])
+
+#dados faltantes (idade)
+from sklearn.preprocessing import Imputer
+imputer = Imputer(missing_values = np.nan, strategy = 'median', axis = 0)
+imputer = imputer.fit(bordotrain.iloc[:, 3:4])
+bordotrain.iloc[:, 3:4] = imputer.transform(bordotrain.iloc[:, 3:4])   
+
+#montando as variáveis de treino
+xtrain = bordotrain.iloc[:, 1:7]
+ytrain = bordotrain.iloc[:, :1]
+"------------------------------------------------------------------------------------------"
+bordoteste = pd.read_csv('test.csv')
+y_test = pd.read_csv('gender_submission.csv')
+
+#transformando a coluna PassengerID em index
+bordoteste = bordoteste.set_index(['PassengerId'])
+y_test = y_test.set_index(['PassengerId'])
+
+#deletando as colunas que não queremos
+del bordoteste['Name']
+del bordoteste['Ticket']
+del bordoteste['Cabin']
+del bordoteste['Embarked']
+
+#transformando sexo em dado numérico
+bordoteste.iloc[:, 1:2] = lblencod.fit_transform(bordoteste.iloc[:, 1:2])
+
+#dados faltantes (idade)
+imputer2 = Imputer(missing_values = np.nan, strategy = 'median', axis = 0)
+imputer2 = imputer.fit(bordoteste.iloc[:, 2:3])
+bordoteste.iloc[:, 2:3] = imputer2.transform(bordoteste.iloc[:, 2:3])
+
+imputer3 = Imputer(missing_values = np.nan, strategy = 'median', axis = 0)
+imputer3 = imputer.fit(bordoteste.iloc[:, 5:6])
+bordoteste.iloc[:, 5:6] = imputer3.transform(bordoteste.iloc[:, 5:6])
+"------------------------------------------------------------------------------------------"
+#treinando o modelo
+from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.ensemble import RandomForestClassifier
+
+floresta = RandomForestClassifier(n_estimators = 100)
+floresta.fit(xtrain, ytrain)
+
+previsao = floresta.predict(bordoteste)
+confusao = confusion_matrix(y_test, previsao)
+taxa_acerto = accuracy_score(y_test, previsao)
